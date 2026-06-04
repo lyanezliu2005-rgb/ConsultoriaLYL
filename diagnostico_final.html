@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico Ejecutivo · Gobierno TI · Luisa Yáñez Liu</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0B1120;--steel:#1E3A5F;--cyan:#00B4D8;--cyan2:#0096C7;
+  --lime:#06D6A0;--amber:#FFB703;--red:#EF233C;
+  --white:#FFFFFF;--fog:#F4F7FB;--muted:#64748B;--border:#DDE3EC;--card:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--fog);color:var(--ink);min-height:100vh;overflow-x:hidden}
+
+/* HERO */
+.hero{background:var(--ink);padding:3.5rem 1.5rem 3rem;text-align:center;position:relative;overflow:hidden}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,180,216,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(0,180,216,.06) 1px,transparent 1px);background-size:40px 40px}
+.hero-pill{display:inline-flex;align-items:center;gap:7px;background:rgba(0,180,216,.12);border:1px solid rgba(0,180,216,.25);color:var(--cyan);font-size:11px;font-weight:600;padding:5px 16px;border-radius:100px;margin-bottom:1.5rem;letter-spacing:.08em;text-transform:uppercase;position:relative}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(26px,5vw,46px);color:var(--white);line-height:1.15;margin-bottom:.9rem;position:relative}
+.hero h1 em{color:var(--cyan);font-style:italic}
+.hero p{color:#8B9DC3;font-size:14.5px;max-width:500px;margin:0 auto 2rem;line-height:1.8;position:relative}
+.hero-chips{display:flex;justify-content:center;gap:.75rem;flex-wrap:wrap;position:relative}
+.chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#94A3B8;font-size:12px;font-weight:500;padding:6px 14px;border-radius:8px;display:flex;align-items:center;gap:5px}
+.chip b{color:var(--white)}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.65rem 1.25rem}
+.topbar-inner{max-width:680px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.pb-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.pb-fill{height:100%;background:linear-gradient(90deg,var(--steel),var(--cyan));border-radius:2px;transition:width .5s cubic-bezier(.16,1,.3,1);width:0%}
+.pb-steps{font-size:11.5px;font-weight:600;color:var(--muted);white-space:nowrap;min-width:52px;text-align:right}
+.pb-dim{font-size:11px;color:var(--muted);white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+
+/* LAYOUT */
+.main{max-width:680px;margin:0 auto;padding:2.5rem 1.25rem 5rem}
+
+/* CAMPOS */
+.section-label{font-size:11px;font-weight:600;color:var(--cyan2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:6px}
+.section-label::before{content:'';width:16px;height:2px;background:var(--cyan2);border-radius:1px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.03em}
+.req{color:var(--red)}
+input,select{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;color:var(--ink);background:var(--white);transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
+input:focus,select:focus{outline:none;border-color:var(--cyan2);box-shadow:0 0 0 3px rgba(0,150,199,.1)}
+.err-msg{font-size:11px;color:var(--red);display:none;margin-top:2px}
+.err-msg.show{display:block}
+
+/* DIM CARDS */
+.dim-card{background:var(--card);border-radius:18px;border:1px solid var(--border);padding:1.75rem;margin-bottom:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.04);transition:border-color .25s;position:relative;overflow:hidden}
+.dim-card.answered{border-color:var(--cyan)}
+.dim-head{display:flex;align-items:center;gap:14px;margin-bottom:1.25rem;padding-bottom:1.1rem;border-bottom:1px solid var(--border)}
+.dim-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.dim-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-bottom:2px}
+.dim-title{font-size:16px;font-weight:600;color:var(--ink);line-height:1.3}
+.q-text{font-size:14px;font-weight:500;color:var(--ink);line-height:1.65;margin-bottom:.9rem}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.tile{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:11px 13px;border:1.5px solid var(--border);border-radius:11px;cursor:pointer;transition:all .15s;user-select:none;background:var(--white)}
+.tile:hover{border-color:var(--cyan2);background:#F0FBFF}
+.tile.sel{border-color:var(--cyan2);background:#E8F8FD;box-shadow:inset 0 0 0 1px var(--cyan2)}
+.tile input[type=radio]{display:none}
+.tile-val{font-size:10px;font-weight:700;color:var(--cyan2);letter-spacing:.05em;text-transform:uppercase}
+.tile-text{font-size:12.5px;color:var(--ink);line-height:1.45}
+.tile.sel .tile-text{font-weight:500}
+.answered-check{position:absolute;top:14px;right:14px;width:22px;height:22px;border-radius:50%;background:var(--lime);display:none;align-items:center;justify-content:center;font-size:12px;color:var(--ink)}
+.dim-card.answered .answered-check{display:flex}
+
+/* CONTACT STEP */
+.contact-step{background:var(--card);border-radius:18px;border:2px solid var(--cyan);padding:2rem;margin-bottom:1.5rem;box-shadow:0 4px 24px rgba(0,180,216,.12);display:none;animation:fadeUp .4s ease}
+.contact-intro{background:linear-gradient(135deg,#0B1120,#1E3A5F);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;text-align:center}
+.contact-intro p{color:#8B9DC3;font-size:13px;line-height:1.7;margin:0}
+.contact-intro strong{color:var(--cyan)}
+
+/* SUBMIT */
+.submit-zone{text-align:center;padding-top:1rem;display:none}
+.submit-btn{display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:var(--white);border:none;padding:15px 42px;border-radius:13px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .22s}
+.submit-btn:hover:not(:disabled){background:var(--steel);transform:translateY(-2px);box-shadow:0 8px 24px rgba(11,17,32,.25)}
+.submit-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.submit-hint{font-size:12px;color:var(--muted);margin-top:.75rem}
+.cta-arrow{font-size:18px;transition:transform .2s}
+.submit-btn:hover:not(:disabled) .cta-arrow{transform:translateX(4px)}
+
+/* RESULTADO */
+.result{display:none;background:var(--card);border-radius:22px;border:1px solid var(--border);overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.1);animation:fadeUp .5s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+.r-hero{background:var(--ink);padding:3rem 2rem;text-align:center;position:relative;overflow:hidden}
+.r-hero::after{content:'';position:absolute;bottom:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:var(--cyan);opacity:.08}
+.r-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(6,214,160,.15);border:1px solid rgba(6,214,160,.3);color:var(--lime);font-size:11px;font-weight:700;padding:5px 16px;border-radius:100px;margin-bottom:1.25rem;letter-spacing:.1em;text-transform:uppercase}
+.r-title{font-family:'Playfair Display',serif;font-size:clamp(22px,4vw,30px);color:var(--white);line-height:1.25;margin-bottom:.6rem}
+.r-title em{color:var(--cyan);font-style:italic}
+.r-sub{color:#8B9DC3;font-size:13.5px;line-height:1.7;max-width:440px;margin:0 auto}
+
+.r-props{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:1.75rem 2rem;border-bottom:1px solid var(--border)}
+.r-prop{background:var(--fog);border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--border)}
+.r-prop-icon{font-size:22px;margin-bottom:5px}
+.r-prop-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.r-prop-desc{font-size:12px;color:var(--ink);line-height:1.4;font-weight:500}
+
+.r-options-wrap{padding:1.75rem 2rem;border-bottom:1px solid var(--border)}
+.r-options-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:.35rem}
+.r-options-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:1.25rem}
+.r-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.r-opt{border:1.5px solid var(--border);border-radius:14px;padding:1.25rem;cursor:pointer;transition:all .2s;text-align:center;background:var(--white)}
+.r-opt:hover{border-color:var(--cyan2);box-shadow:0 4px 16px rgba(0,180,216,.1)}
+.r-opt.selected{border-color:var(--cyan);background:#F0FBFF;box-shadow:inset 0 0 0 1px var(--cyan)}
+.r-opt-icon{font-size:28px;margin-bottom:.5rem}
+.r-opt-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:.35rem}
+.r-opt.selected .r-opt-title{color:var(--cyan2)}
+.r-opt-desc{font-size:12px;color:var(--muted);line-height:1.5}
+.r-confirm{display:none;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:12px 16px;margin-top:1rem;font-size:13px;color:#166534;font-weight:500;text-align:center;animation:fadeUp .3s ease}
+
+.r-cta-box{background:var(--ink);padding:2rem;text-align:center}
+.r-cta-title{font-family:'Playfair Display',serif;font-size:22px;color:var(--white);margin-bottom:.5rem}
+.r-cta-sub{font-size:13px;color:#8B9DC3;line-height:1.7;margin-bottom:1.25rem;max-width:400px;margin-left:auto;margin-right:auto}
+.r-feats{display:flex;justify-content:center;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem}
+.r-feat{font-size:12px;color:var(--lime);font-weight:600;display:flex;align-items:center;gap:5px}
+.r-feat::before{content:'✓'}
+.r-btn{display:inline-flex;align-items:center;gap:8px;background:var(--cyan);color:var(--ink);font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;text-decoration:none;transition:all .2s}
+.r-btn:hover{background:#00C6E9;transform:translateY(-1px)}
+.r-disclaimer{font-size:11px;color:#475569;margin-top:1rem;line-height:1.6}
+
+@media(max-width:580px){
+  .grid2,.r-options{grid-template-columns:1fr}
+  .tiles{grid-template-columns:1fr 1fr}
+  .r-props{grid-template-columns:1fr}
+  .r-props,.r-options-wrap,.r-cta-box{padding:1.25rem}
+}
+@media(max-width:360px){.tiles{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-pill">🔍 Diagnóstico · Gobierno TI</div>
+  <h1>¿Cuánto <em>control real</em> tiene<br>su empresa sobre su tecnología?</h1>
+  <p>8 preguntas. 4 minutos. Un diagnóstico ejecutivo completo para tomar decisiones con claridad.</p>
+  <div class="hero-chips">
+    <div class="chip"><b>4 min</b> de duración</div>
+    <div class="chip"><b>8</b> dimensiones clave</div>
+    <div class="chip"><b>100%</b> confidencial</div>
+    <div class="chip"><b>Sin</b> compromiso</div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="pb-dim" id="pb-dim">Responda las 8 dimensiones</div>
+    <div class="pb-track"><div class="pb-fill" id="pb"></div></div>
+    <div class="pb-steps" id="pb-steps">0 / 8</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="dim-card" id="dc-q1">
+    <div class="answered-check">✓</div>
+    <div class="dim-head">
+      <div class="dim-icon" style="background:#E8F4FD">🧭</div>
+      <div class="dim-info">
+        <div class="dim-label">Dimensión 1 · Estrategia TI</div>
+        <div class="dim-title">Alineación tecnología–negocio</div>
+      </div>
+    </div>
+    <div class="q-text">¿Cómo describe la relación entre la tecnología y la estrategia de su organización?</div>
+    <div class="tiles" data-q="q1">
+      <label class="tile"><input type="radio" name="q1" value="1"><div class="tile-val">Nivel 1</div><div class="tile-text">TI reacciona ante problemas; sin planificación</div></label>
+      <label class="tile"><input type="radio" name="q1" value="2"><div class="tile-val">Nivel 2</div><div class="tile-text">Hay planes TI, pero desconectados del negocio</div></label>
+      <label class="tile"><input type="radio" name="q1" value="3"><div class="tile-val">Nivel 3</div><div class="tile-text">Roadmap TI alineado, revisado anualmente</div></label>
+      <label class="tile"><input type="radio" name="q1" value="4"><div class="tile-val">Nivel 4</div><div class="tile-text">TI co-diseña la estrategia corporativa</div></label>
+    </div>
+  </div>
+
+  <div class="dim-card" id="dc-q2">
+    <div class="answered-check">✓</div>
+    <div class="dim-head">
+      <div class="dim-icon" style="background:#ECFDF5">📋</div>
+      <div class="dim-info">
+        <div class="dim-label">Dimensión 2 · PMO y Portafolio</div>
+        <div class="dim-title">Gestión de proyectos e iniciativas</div>
+      </div>
+    </div>
+    <div class="q-text">¿Cómo controla y prioriza su empresa los proyectos tecnológicos en curso?</div>
+    <div class="tiles" data-q="q2">
+      <label class="tile"><input type="radio" name="q2" value="1"><div class="tile-val">Nivel 1</div><div class="tile-text">Sin seguimiento formal; el estado se conoce preguntando</div></label>
+      <label class="tile"><input type="radio" name="q2" value="2"><div class="tile-val">Nivel 2</div><div class="tile-text">Reportes manuales; sin priorización oficial</div></label>
+      <label class="tile"><input type="radio" name="q2" value="3"><div class="tile-val">Nivel 3</div><div class="tile-text">PMO o comité con visibilidad de portafolio</div></label>
+      <label class="tile"><input type="radio" name="q2" value="4"><div class="tile-val">Nivel 4</div><div class="tile-text">Portafolio visible en tiempo real para la alta dirección</div></label>
+    </div>
+  </div>
+
+  <div class="dim-card" id="dc-q3">
+    <div class="answered-check">✓</div>
+    <div class="dim-head">
+      <div class="dim-icon" style="background:#FFFBEB">💰</div>
+      <div class="dim-info">
+        <div class="dim-label">Dimensión 3 · FinOps / Finanzas TI</div>
+        <div class="dim-title">Control del gasto tecnológico</div>
+      </div>
+    </div>
+    <div class="q-text">¿Qué nivel de visibilidad tiene la gerencia sobre el gasto en tecnología (OPEX, CAPEX, nube)?</div>
+    <div class="tiles" data-q="q3">
+      <label class="tile"><input type="radio" name="q3" value="1"><div class="tile-val">Nivel 1</div><div class="tile-text">Sin desglose; solo se ve en cierre contable</div></label>
+      <label class="tile"><input type="radio" name="q3" value="2"><div class="tile-val">Nivel 2</div><div class="tile-text">Se conoce el total pero sin detalle por proyecto</div></label>
+      <label class="tile"><input type="radio" name="q3" value="3"><div class="tile-val">Nivel 3</div><div class="tile-text">Desglose por área y proyecto; revisión mensual</div></label>
+      <label class="tile"><input type="radio" name="q3" value="4"><div class="tile-val">Nivel 4</div><div class="tile-text">Forecast en tiempo real, optimización continua</div></label>
+    </div>
+  </div>
+
+  <div class="dim-card" id="dc-q4">
+    <div class="answered-check">✓</div>
+    <div class="dim-head">
+      <div class="dim-icon" style="background:#FEF2F2">⚠️</div>
+      <div class="dim-info">
+        <div class="dim-label">Dimensión 4 · Riesgo y Continuidad</div>
+        <div class="dim-title">Gestión de riesgos tecnológicos</div>
+      </div>
+    </div>
+    <div class="q-text">¿Cómo gestiona su empresa los riesgos TI y la continuidad operacional ante fallas o desastres?</div>
+    <div class="tiles" data-q="q4">
+      <label class="tile"><input type="radio" name="q4" value="1"><div class="tile-val">Nivel 1</div><div class="tile-text">Sin plan documentado de continuidad (BCP/DRP)</div></label>
+      <label class="tile"><input type="radio" name="q4" value="2"><div class="tile-val">Nivel 2</div><div class="tile-text">Plan existe pero no se prueba ni actualiza</div></label>
+      <label class="tile"><input type="radio" name="q4" value="3"><div class="tile-val">Nivel 3</div><div class="tile-text">BCP/DRP documentado, probado anualmente</div></label>
+      <label class="tile"><input type="radio" name="q4" value="4"><div class="tile-val">Nivel 4</div><div class="tile-text">Gestión de riesgos integrada, auditada y en mejora continua</div></label>
+    </div>
+  </div>
+
+  <div class="dim-card" id="dc-q5">
+    <div class="answered-check">✓</div>
+    <div class="dim-head">
+      <div class="dim-icon" style="background:#FDF4FF">🔐</div>
+      <div class="dim-info">
+        <div class="dim-label">Dimensión 5 · Ciberseguridad</div>
+        <div class="dim-title">Protección y respuesta ante amenazas</div>
+      </div>
+    </div>
+    <div class="q-text">¿Cómo describe el nivel de madurez en ciberseguridad de su organización?</div>
+    <div class="tiles" data-q="q5">
+      <label class="tile"><input type="radio" name="q5" value="1"><div class="tile-val">Nivel 1</div><div class="tile-text">Sin política formal; solo antivirus básico</div></label>
+      <label class="tile"><input type="radio" name="q5" value="2"><div class="tile-val">Nivel 2</div><div class="tile-text">Controles técnicos sin marco de gestión</div></label>
+      <label class="tile"><input type="radio" name="q5" value="3"><div class="tile-val">Nivel 3</div><div class="tile-text">Marco de seguridad con monitoreo y respuesta</div></label>
+      <label class="tile"><input type="radio" name="q5" value="4"><div class="tile-val">Nivel 4</div><div class="tile-text">Marco auditado, con gestión de incidentes y mejora continua</div></label>
+    </div>
+  </div>
+
+  <div class="dim-card" id="dc-q6">
+    <div class="answered-check">✓</div>
+    <div class="dim-head">
+      <div class="dim-icon" style="background:#F0FDF4">🗄️</div>
+      <div class="dim-info">
+        <div class="dim-label">Dimensión 6 · Gobierno de Datos</div>
+        <div class="dim-title">Calidad, trazabilidad y uso de datos</div>
+      </div>
+    </div>
+    <div class="q-text">¿Qué tan confiables y accesibles son los datos para tomar decisiones ejecutivas en su empresa?</div>
+    <div class="tiles" data-q="q6">
+      <label class="tile"><input type="radio" name="q6" value="1"><div class="tile-val">Nivel 1</div><div class="tile-text">Datos dispersos; sin fuente única de verdad</div></label>
+      <label class="tile"><input type="radio" name="q6" value="2"><div class="tile-val">Nivel 2</div><div class="tile-text">Datos centralizados pero calidad inconsistente</div></label>
+      <label class="tile"><input type="radio" name="q6" value="3"><div class="tile-val">Nivel 3</div><div class="tile-text">Política de datos, responsables y métricas de calidad</div></label>
+      <label class="tile"><input type="radio" name="q6" value="4"><div class="tile-val">Nivel 4</div><div class="tile-text">Datos como activo estratégico; cultura data-driven</div></label>
+    </div>
+  </div>
+
+  <div class="dim-card" id="dc-q7">
+    <div class="answered-check">✓</div>
+    <div class="dim-head">
+      <div class="dim-icon" style="background:#FFF7ED">📜</div>
+      <div class="dim-info">
+        <div class="dim-label">Dimensión 7 · Normativa y Compliance</div>
+        <div class="dim-title">Cumplimiento regulatorio tecnológico</div>
+      </div>
+    </div>
+    <div class="q-text">¿Cómo maneja su empresa el cumplimiento normativo vinculado a tecnología (GDPR, ISO 27001, regulaciones sectoriales)?</div>
+    <div class="tiles" data-q="q7">
+      <label class="tile"><input type="radio" name="q7" value="1"><div class="tile-val">Nivel 1</div><div class="tile-text">Sin identificación formal de requisitos regulatorios TI</div></label>
+      <label class="tile"><input type="radio" name="q7" value="2"><div class="tile-val">Nivel 2</div><div class="tile-text">Cumplimiento reactivo; se actúa ante auditorías</div></label>
+      <label class="tile"><input type="radio" name="q7" value="3"><div class="tile-val">Nivel 3</div><div class="tile-text">Controles documentados y revisados periódicamente</div></label>
+      <label class="tile"><input type="radio" name="q7" value="4"><div class="tile-val">Nivel 4</div><div class="tile-text">Compliance integrado en procesos; certificaciones vigentes</div></label>
+    </div>
+  </div>
+
+  <div class="dim-card" id="dc-q8">
+    <div class="answered-check">✓</div>
+    <div class="dim-head">
+      <div class="dim-icon" style="background:#F5F3FF">👔</div>
+      <div class="dim-info">
+        <div class="dim-label">Dimensión 8 · Liderazgo TI / CIO</div>
+        <div class="dim-title">Capacidad de liderazgo tecnológico</div>
+      </div>
+    </div>
+    <div class="q-text">¿Cómo está estructurado el liderazgo tecnológico estratégico en su organización hoy?</div>
+    <div class="tiles" data-q="q8">
+      <label class="tile"><input type="radio" name="q8" value="1"><div class="tile-val">Nivel 1</div><div class="tile-text">Sin líder TI definido; lo maneja quien puede</div></label>
+      <label class="tile"><input type="radio" name="q8" value="2"><div class="tile-val">Nivel 2</div><div class="tile-text">Jefe TI operacional; sin voz en decisiones de negocio</div></label>
+      <label class="tile"><input type="radio" name="q8" value="3"><div class="tile-val">Nivel 3</div><div class="tile-text">CIO/Gerente TI en comité ejecutivo</div></label>
+      <label class="tile"><input type="radio" name="q8" value="4"><div class="tile-val">Nivel 4</div><div class="tile-text">CIO estratégico con reporte al directorio</div></label>
+    </div>
+  </div>
+
+  <!-- PASO 2: DATOS — aparece al completar las 8 -->
+  <div class="contact-step" id="contact-card">
+    <div class="section-label">Paso 2 · Sus datos de contacto</div>
+    <div class="contact-intro">
+      <p>Excelente, ha completado las 8 dimensiones.<br>
+      Ingrese sus datos para registrar su diagnóstico.<br>
+      <strong>Sus respuestas son estrictamente confidenciales.</strong></p>
+    </div>
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="field">
+        <label>Nombre completo <span class="req">*</span></label>
+        <input id="f-name" placeholder="Ej: Ana González" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>Cargo <span class="req">*</span></label>
+        <input id="f-role" placeholder="Ej: CEO, CFO, CIO…">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>Empresa <span class="req">*</span></label>
+      <input id="f-company" placeholder="Nombre de la organización">
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>Email corporativo <span class="req">*</span> <span style="font-weight:400;color:#94A3B8;font-size:11px">— No Gmail, Yahoo, Hotmail, etc.</span></label>
+      <input id="f-email" type="email" placeholder="nombre@suempresa.com">
+      <div class="err-msg" id="e-email">Use su email corporativo</div>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label>Industria <span class="req">*</span></label>
+        <select id="f-industry">
+          <option value="">Seleccione…</option>
+          <option>Banca y servicios financieros</option>
+          <option>Leasing y crédito</option>
+          <option>Seguros</option>
+          <option>Retail y consumo masivo</option>
+          <option>Salud y farmacéutico</option>
+          <option>Manufactura e industria</option>
+          <option>Energía y utilities</option>
+          <option>Tecnología y software</option>
+          <option>Servicios y consultoría</option>
+          <option>Educación</option>
+          <option>Gobierno y sector público</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Tamaño de empresa <span class="req">*</span></label>
+        <select id="f-size">
+          <option value="">Seleccione…</option>
+          <option>Menos de 100 empleados</option>
+          <option>100 – 500 empleados</option>
+          <option>500 – 2.000 empleados</option>
+          <option>Más de 2.000 empleados</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTÓN -->
+  <div class="submit-zone" id="submit-zone">
+    <button class="submit-btn" id="submit-btn" disabled onclick="submitForm()">
+      Ver resultado <span class="cta-arrow">→</span>
+    </button>
+    <div class="submit-hint" id="submit-hint">Complete sus datos para continuar</div>
+  </div>
+
+  <!-- RESULTADO CLIENTE -->
+  <div class="result" id="result">
+    <div class="r-hero">
+      <div class="r-badge">✓ Diagnóstico recibido</div>
+      <div class="r-title">Sus resultados están<br><em>en nuestras manos</em></div>
+      <p class="r-sub" style="margin-top:.75rem">
+        Hemos registrado el diagnóstico de <strong id="r-company" style="color:var(--cyan)"></strong>.<br>
+        Ahora viene el paso que marca la diferencia.
+      </p>
+    </div>
+
+    <div class="r-props">
+      <div class="r-prop">
+        <div class="r-prop-icon">🎯</div>
+        <div class="r-prop-title">Diagnóstico</div>
+        <div class="r-prop-desc">Revisión de sus 8 dimensiones con análisis experto</div>
+      </div>
+      <div class="r-prop">
+        <div class="r-prop-icon">💡</div>
+        <div class="r-prop-title">Hallazgos</div>
+        <div class="r-prop-desc">Identificación de brechas críticas para su organización</div>
+      </div>
+      <div class="r-prop">
+        <div class="r-prop-icon">🚀</div>
+        <div class="r-prop-title">Hoja de ruta</div>
+        <div class="r-prop-desc">Recomendaciones priorizadas y próximos pasos concretos</div>
+      </div>
+    </div>
+
+    <div class="r-options-wrap" id="r-options-wrap">
+      <div class="r-options-title">¿Cómo prefiere recibir su análisis?</div>
+      <div class="r-options-sub">Elija la opción que mejor se adapte a sus tiempos. En ambos casos el análisis es personalizado y sin costo.</div>
+      <div class="r-options">
+        <div class="r-opt" id="opt-email" onclick="elegirOpcion('email')">
+          <div class="r-opt-icon">📧</div>
+          <div class="r-opt-title">Recibir análisis por email</div>
+          <div class="r-opt-desc">En máximo 48 hrs le enviamos un informe detallado con sus resultados y recomendaciones personalizadas</div>
+        </div>
+        <div class="r-opt" id="opt-reunion" onclick="elegirOpcion('reunion')">
+          <div class="r-opt-icon">📅</div>
+          <div class="r-opt-title">Agendar reunión</div>
+          <div class="r-opt-desc">Revisamos juntos el diagnóstico en 30 min e identificamos en conjunto las brechas más críticas</div>
+        </div>
+      </div>
+      <div class="r-confirm" id="r-confirm-email">
+        ✅ Perfecto. Recibirá su análisis en su email corporativo en las próximas 48 hrs.
+      </div>
+      <div class="r-confirm" id="r-confirm-reunion" style="background:#EFF6FF;border-color:#BFDBFE;color:#1e40af">
+        📅 Genial. Use el botón de abajo para elegir el horario que mejor le acomode.
+      </div>
+    </div>
+
+    <div class="r-cta-box">
+      <div class="r-cta-title">Conversemos sobre su diagnóstico</div>
+      <p class="r-cta-sub">En <strong style="color:var(--white)">30 minutos</strong> revisamos sus resultados, identificamos brechas prioritarias y definimos juntos los próximos pasos.</p>
+      <div class="r-feats">
+        <span class="r-feat">Sin costo</span>
+        <span class="r-feat">Solo 30 minutos</span>
+        <span class="r-feat">Foco en su caso</span>
+        <span class="r-feat">Agenda flexible</span>
+      </div>
+      <a class="r-btn" href="https://cal.com/luisa-yanez-liu-ntx1z5/asesoria-ejecutiva-en-tecnologia" target="_blank">
+        Agendar reunión de 30 min <span style="font-size:18px">→</span>
+      </a>
+      <div class="r-disclaimer">Sus datos son estrictamente confidenciales y no se comparten con terceros.<br>Luisa Yáñez Liu · Asesora Ejecutiva en Tecnología y Gobierno de Datos</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx3vDm-D-jKCBPI35nEQW8e4Iz5bRYxnSmf5TIi9FVF76TJoX0bSX3v-d9Q4QyyG7pB/exec';
+const BLOCKED = ['gmail.com','gmail.cl','yahoo.com','yahoo.es','yahoo.cl',
+  'hotmail.com','hotmail.cl','hotmail.es',
+  'outlook.com','outlook.cl','outlook.es',
+  'live.com','live.cl','live.com.ar',
+  'icloud.com','me.com','mac.com',
+  'aol.com','protonmail.com','proton.me',
+  'msn.com','ymail.com','googlemail.com',
+  'terra.com','terra.cl','vtr.net',
+  'tutanota.com','zoho.com','mail.com',
+  'inbox.com','gmx.com','fastmail.com'];
+const DIM_NAMES = ['Estrategia TI','PMO y Portafolio','FinOps','Riesgo y Continuidad','Ciberseguridad','Gobierno de Datos','Normativa y Compliance','Liderazgo TI'];
+
+let scores = {}, answered = 0, contactReady = false;
+
+document.querySelectorAll('.tiles input[type=radio]').forEach(r => {
+  r.addEventListener('change', () => {
+    const q = r.name;
+    if (!scores[q]) answered++;
+    scores[q] = parseInt(r.value);
+    document.querySelectorAll(`.tiles[data-q="${q}"] .tile`).forEach(t => t.classList.remove('sel'));
+    r.closest('.tile').classList.add('sel');
+    document.getElementById('dc-'+q).classList.add('answered');
+    updateProgress(q);
+    if (answered === 8 && !contactReady) {
+      contactReady = true;
+      const cc = document.getElementById('contact-card');
+      const sz = document.getElementById('submit-zone');
+      cc.style.display = 'block';
+      sz.style.display = 'block';
+      setTimeout(() => cc.scrollIntoView({behavior:'smooth',block:'start'}), 100);
+      ['f-name','f-role','f-company','f-email','f-industry','f-size'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.addEventListener('input', checkReady); el.addEventListener('change', checkReady); }
+      });
+    }
+  });
+});
+
+function emailOk(em) {
+  em = em.toLowerCase().trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return false;
+  var domain = em.split('@')[1];
+  return BLOCKED.indexOf(domain) === -1;
+}
+
+function contactOk() {
+  const g = id => document.getElementById(id).value.trim();
+  return g('f-name').length>=2 && g('f-role').length>=2 && g('f-company').length>=2
+    && document.getElementById('f-industry').value && document.getElementById('f-size').value
+    && emailOk(g('f-email').toLowerCase());
+}
+
+function updateProgress(lastQ) {
+  document.getElementById('pb').style.width = Math.round(answered/8*100)+'%';
+  document.getElementById('pb-steps').textContent = answered+' / 8';
+  if (lastQ) document.getElementById('pb-dim').textContent = DIM_NAMES[parseInt(lastQ.replace('q',''))-1]+' ✓';
+}
+
+function checkReady() {
+  const em = document.getElementById('f-email').value.trim().toLowerCase();
+  const err = document.getElementById('e-email');
+  em && !emailOk(em) ? err.classList.add('show') : err.classList.remove('show');
+  const ok = answered>=8 && contactOk();
+  document.getElementById('submit-btn').disabled = !ok;
+  const hint = document.getElementById('submit-hint');
+  hint.textContent = ok ? 'Todo listo — vea su diagnóstico' : 'Complete sus datos para continuar';
+  hint.style.color = ok ? '#059669' : '';
+}
+
+function submitForm() {
+  const g = id => document.getElementById(id).value.trim();
+  const nombre=g('f-name'), cargo=g('f-role'), empresa=g('f-company'), email=g('f-email');
+  const ind=document.getElementById('f-industry').value, sz=document.getElementById('f-size').value;
+  const total = Object.values(scores).reduce((a,b)=>a+b,0);
+  const pct = Math.round(total/32*100);
+
+  document.querySelectorAll('.dim-card').forEach(c=>c.style.display='none');
+  document.getElementById('contact-card').style.display='none';
+  document.getElementById('submit-zone').style.display='none';
+  const res = document.getElementById('result');
+  res.style.display='block';
+  setTimeout(()=>res.scrollIntoView({behavior:'smooth',block:'start'}),100);
+  document.getElementById('r-company').textContent = empresa;
+
+  window._data = {
+    timestamp:new Date().toISOString(), nombre, cargo, empresa, email,
+    industria:ind, tamano:sz,
+    q1:scores.q1,q2:scores.q2,q3:scores.q3,q4:scores.q4,
+    q5:scores.q5,q6:scores.q6,q7:scores.q7,q8:scores.q8,
+    pct_total:pct,
+    dim_estrategia:scores.q1,dim_pmo:scores.q2,dim_finops:scores.q3,
+    dim_riesgo:scores.q4,dim_ciberseguridad:scores.q5,
+    dim_datos:scores.q6,dim_normativa:scores.q7,dim_liderazgo:scores.q8,
+    solicita_email:'No', solicita_reunion:'No'
+  };
+  // envio se hace al elegir opcion
+}
+
+function elegirOpcion(tipo) {
+  if (window._opcionElegida) return;
+  window._opcionElegida = true;
+
+  // Reemplazar bloque de opciones con pantalla de gracias
+  var wrap = document.getElementById('r-options-wrap');
+  var msg = tipo === 'email'
+    ? 'Le enviaremos su análisis detallado en las próximas 48 hrs a su email corporativo.'
+    : 'Nos pondremos en contacto para coordinar el horario que mejor le acomode.';
+  wrap.innerHTML = '<div style="padding:2rem;text-align:center">'
+    + '<div style="width:56px;height:56px;border-radius:50%;background:rgba(6,214,160,.12);border:2px solid #06D6A0;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 1rem;color:#06D6A0">✓</div>'
+    + '<h2 style="font-family:Playfair Display,serif;font-size:20px;color:var(--ink);margin-bottom:.5rem">¡Gracias por su tiempo!</h2>'
+    + '<p style="font-size:13px;color:var(--muted);line-height:1.7;max-width:380px;margin:0 auto .5rem">Hemos recibido su diagnóstico y nos pondremos en contacto con usted pronto.</p>'
+    + '<p style="font-size:13px;color:var(--cyan2);font-weight:600;max-width:380px;margin:.5rem auto 0;line-height:1.6">' + msg + '</p>'
+    + '</div>';
+
+  if (window._data) {
+    window._data.solicita_email   = tipo === 'email'   ? 'Sí' : 'No';
+    window._data.solicita_reunion = tipo === 'reunion' ? 'Sí' : 'No';
+    enviar(window._data);
+  }
+}
+
+function enviar(data) {
+  fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(()=>{});
+}
+</script>
+</body>
+</html>
