@@ -9,77 +9,33 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
 
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, serverTimestamp }
-    from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+<!-- Config local — NO subir a GitHub (ver .gitignore) -->
+<!-- ══════════════════════════════════════════════════════
+     CLOUDFLARE WORKER ENDPOINT
+     Las credenciales viven en Cloudflare como secretos.
+     Este archivo NO contiene ninguna credencial.
+     Cambiar la URL por la URL real del Worker tras desplegarlo.
+══════════════════════════════════════════════════════ -->
+<script>
+  // URL del Cloudflare Worker — reemplazar con la URL real tras desplegar
+  // Ejemplo: https://clyp-diagnostico.TU-USUARIO.workers.dev/diagnostico
+  window.__WORKER_URL = 'https://clyp-diagnostico.lyanezliu2005.workers.dev/diagnostico';
 
-  /* ── CONFIGURACIÓN FIREBASE ── */
-  const firebaseConfig = {
-    apiKey:            "AIzaSyA78ls9MRLWt06tXt_RyWm1rsbJla8jOvg",
-    authDomain:        "clyp-gobierno-ti.firebaseapp.com",
-    projectId:         "clyp-gobierno-ti",
-    storageBucket:     "clyp-gobierno-ti.firebasestorage.app",
-    messagingSenderId: "334035447386",
-    appId:             "1:334035447386:web:d4bf95951c967cbdb3b263",
-    measurementId:     "G-VE1YWCZZ9H"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
-
-  /* ── Encriptación AES-GCM (Web Crypto API — nativa en browser) ── */
-  const ENC_KEY_B64 = "mZJLxlswR7DQ5OrJ4bXB6ifW2/VijGN2NXqZ+F2G/wc="; // Clave AES-256-GCM — guardar copia segura fuera de GitHub
-
-  async function getKey(b64) {
-    const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    return crypto.subtle.importKey("raw", raw, { name:"AES-GCM" }, false, ["encrypt","decrypt"]);
-  }
-  async function encrypt(text) {
-    const iv  = crypto.getRandomValues(new Uint8Array(12));
-    const key = await getKey(ENC_KEY_B64);
-    const enc = await crypto.subtle.encrypt(
-      { name:"AES-GCM", iv },
-      key,
-      new TextEncoder().encode(text)
-    );
-    const buf = new Uint8Array(iv.length + enc.byteLength);
-    buf.set(iv, 0);
-    buf.set(new Uint8Array(enc), iv.length);
-    return btoa(String.fromCharCode(...buf));
-  }
-
-  /* ── Guardar diagnóstico en Firestore con datos encriptados ───── */
   window.__saveDiagnostico = async function(payload) {
-    const encNombre  = await encrypt(payload.nombre);
-    const encEmail   = await encrypt(payload.email);
-    const encEmpresa = await encrypt(payload.empresa);
-    const encCargo   = await encrypt(payload.cargo);
-
-    const doc = {
-      // Campos encriptados (PII)
-      nombre_enc:  encNombre,
-      email_enc:   encEmail,
-      empresa_enc: encEmpresa,
-      cargo_enc:   encCargo,
-      // Campos analíticos (no PII)
-      industria:   payload.industria,
-      tamanio:     payload.tamanio,
-      respuestas:  payload.respuestas,
-      score_total: payload.score_total,
-      nivel_global:payload.nivel_global,
-      // Metadatos legales
-      consentimiento: payload.consentimiento,
-      timestamp:  serverTimestamp(),
-      version:    "v2-2025-06",
-      origen:     "clypconsultores.cl/GobiernoTI"
-    };
-
-    const ref = await addDoc(collection(db, "diagnosticos"), doc);
-    return ref.id;
+    const res = await fetch(window.__WORKER_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Error ${res.status}`);
+    }
+    const data = await res.json();
+    return data.id || 'ok';
   };
 </script>
+
 
 <style>
 /* ══════════════════════════════════════════════════════════
@@ -203,12 +159,64 @@ body{font-family:var(--sans);background:var(--navy);color:var(--white);min-heigh
 ══════════════════════════════════════════════ */
 .report-wrap{background:var(--navy2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 
-/* Encabezado del informe */
-.rep-header{background:linear-gradient(135deg,var(--navy4),var(--navy3));padding:32px 28px;border-bottom:1px solid var(--line)}
-.rep-logo{font-family:var(--serif);font-size:13px;color:var(--muted);margin-bottom:8px}
+/* ── CABECERA INFORME (pantalla) ── */
+.rep-header{
+  background:linear-gradient(135deg,var(--navy4),var(--navy3));
+  padding:24px 28px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:flex-start;
+  gap:16px;
+  border-bottom:3px solid var(--teal);
+}
+.rep-logo{font-family:var(--serif);font-size:11px;color:var(--muted);margin-bottom:4px}
 .rep-logo em{color:var(--teal);font-style:normal}
-.rep-title{font-family:var(--serif);font-size:26px;color:var(--white);margin-bottom:4px}
-.rep-meta{font-size:12px;color:var(--muted);font-weight:300}
+.rep-title{font-family:var(--serif);font-size:22px;color:var(--white);margin-bottom:4px}
+.rep-meta{font-size:11px;color:var(--muted);font-weight:300}
+.rep-validity{display:block;font-size:11px;color:var(--gold);font-weight:600;margin-top:5px}
+.rep-header-right{text-align:right;flex-shrink:0}
+.rep-header-right div{font-size:11px;color:var(--muted);line-height:1.7}
+.rep-folio{font-size:10px;color:var(--teal);margin-top:4px;font-weight:600}
+
+/* ── DATOS EMPRESA (pantalla) ── */
+.rep-empresa-box{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  border-bottom:1px solid var(--line);
+  background:var(--navy4);
+}
+.reb-item{padding:12px 18px;border-right:1px solid var(--line)}
+.reb-item:nth-child(3n){border-right:none}
+.reb-label{font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.reb-value{font-size:12px;font-weight:600;color:var(--white)}
+
+/* ── AVISO PRIVACIDAD INFORME (pantalla) ── */
+.rep-privacy-bar{
+  background:rgba(0,180,216,0.06);
+  border-bottom:1px solid var(--line);
+  padding:10px 20px;
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.6;
+}
+.rep-privacy-bar strong{color:var(--off)}
+
+/* ── CAJA VALIDEZ (pantalla) ── */
+.validity-box{
+  display:block;
+  background:var(--gold3);
+  border:1px solid rgba(233,168,37,0.3);
+  border-radius:7px;
+  padding:12px 16px;
+  margin:14px 0;
+  font-size:12px;
+  color:var(--off);
+  line-height:1.6;
+}
+.validity-box strong{color:var(--gold)}
+
+/* ── PIE PDF — solo visible al imprimir ── */
+.pdf-footer{display:none}
 
 /* Score global */
 .score-band{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center;padding:28px;border-bottom:1px solid var(--line)}
@@ -322,10 +330,169 @@ body{font-family:var(--sans);background:var(--navy);color:var(--white);min-heigh
   .cta-btns{flex-direction:column;align-items:center}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ══════════════════════════════════════════
+   ESTILOS EXCLUSIVOS PARA IMPRESIÓN / PDF
+══════════════════════════════════════════ */
 @media print{
-  .btn-next,.btn-sub,.btn-cal,.btn-email,.btn-print,.modal-bg,.toast{display:none!important}
-  body{background:#fff;color:#000}
-  .report-wrap{border:1px solid #ccc}
+  /* Ocultar todo excepto el informe */
+  .step#step1,.step#step2,.site-header,.logo-bar,
+  .btn-next,.btn-sub,.btn-cal,.btn-email,.btn-print,
+  .modal-bg,.toast,.site-footer,
+  .cta-btns{display:none!important}
+
+  /* Mostrar step3 aunque no tenga .active */
+  .step#step3{display:block!important}
+
+  /* Reset para impresión */
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html,body{background:#f7f9fc!important;color:#1a2a3a!important;font-family:'DM Sans',Arial,sans-serif;font-size:10pt;margin:0;padding:0}
+  .shell{max-width:100%!important;padding:0!important;margin:0!important}
+  .report-wrap{border:none!important;background:#fff!important;box-shadow:none!important}
+
+  /* Saltos de página */
+  .dims-section{page-break-before:always}
+  .findings-section{page-break-before:always}
+  .quote-section{page-break-before:always}
+  .finding-item{page-break-inside:avoid}
+  .qi{page-break-inside:avoid}
+
+  /* CABECERA PDF */
+  .rep-header{
+    background:#07192B!important;
+    color:#fff!important;
+    padding:20px 28px 18px!important;
+    display:grid!important;
+    grid-template-columns:1fr auto!important;
+    align-items:center!important;
+    gap:16px!important;
+    border-bottom:4px solid #00B4D8!important;
+  }
+  .rep-logo{font-size:8pt!important;color:#9CB8C8!important;margin-bottom:3px!important}
+  .rep-logo em{color:#00B4D8!important;font-style:normal!important}
+  .rep-title{font-size:18pt!important;color:#fff!important;font-weight:700!important}
+  .rep-meta{font-size:8pt!important;color:#9CB8C8!important;margin-top:4px!important}
+  .rep-validity{display:block!important;font-size:8pt!important;color:#E9A825!important;margin-top:4px!important;font-weight:600!important}
+  .rep-header-right{text-align:right!important}
+  .rep-folio{font-size:7pt!important;color:#9CB8C8!important;margin-top:4px!important}
+
+  /* DATOS EMPRESA PDF */
+  .rep-empresa-box{
+    display:grid!important;
+    grid-template-columns:1fr 1fr 1fr!important;
+    gap:0!important;
+    border:1px solid #dce4ec!important;
+    border-top:none!important;
+    background:#f0f6fa!important;
+  }
+  .reb-item{padding:10px 14px!important;border-right:1px solid #dce4ec!important}
+  .reb-item:last-child{border-right:none!important}
+  .reb-label{font-size:7pt!important;color:#6b8fa8!important;text-transform:uppercase!important;letter-spacing:1px!important;margin-bottom:2px!important;font-weight:600!important}
+  .reb-value{font-size:9pt!important;color:#1a2a3a!important;font-weight:600!important}
+
+  /* AVISO DE PRIVACIDAD PDF */
+  .rep-privacy-bar{
+    background:#e8f4f8!important;
+    border:1px solid #b8d8e8!important;
+    border-top:none!important;
+    padding:8px 16px!important;
+    font-size:7.5pt!important;
+    color:#4a6a7a!important;
+    line-height:1.5!important;
+  }
+
+  /* SCORE */
+  .score-band{
+    background:#fff!important;
+    border-bottom:1px solid #dce4ec!important;
+    padding:20px 28px!important;
+  }
+  .score-val{color:#07192B!important}
+  .score-of{color:#6b8fa8!important}
+  .score-nivel{font-weight:700!important}
+  .score-label{font-size:14pt!important;color:#07192B!important}
+  .score-desc{font-size:9pt!important;color:#4a6a7a!important}
+
+  /* BARRAS */
+  .dims-section{background:#fff!important;padding:16px 28px!important;border-bottom:1px solid #dce4ec!important}
+  .sec-title{font-size:8pt!important;color:#E9A825!important;font-weight:700!important;letter-spacing:1.5px!important;margin-bottom:12px!important}
+  .dbar-label{font-size:8.5pt!important;color:#4a6a7a!important}
+  .dbar-val{font-size:8.5pt!important;color:#07192B!important;font-weight:700!important}
+  .dbar-track{background:#e0eaf2!important}
+
+  /* HALLAZGOS */
+  .findings-section{background:#fff!important;padding:16px 28px!important}
+  .finding-item{
+    border-radius:6px!important;
+    padding:12px!important;
+    margin-bottom:10px!important;
+    border-left:3px solid #00B4D8!important;
+    background:#f7f9fc!important;
+  }
+  .finding-item.risk{border-left-color:#E05555!important;background:#fff8f8!important}
+  .finding-item.warn{border-left-color:#E9A825!important;background:#fffbf0!important}
+  .finding-item.ok{border-left-color:#2ECC71!important;background:#f4fff8!important}
+  .fi-title{color:#07192B!important;font-size:9.5pt!important}
+  .fi-body{color:#3a5a6a!important;font-size:8.5pt!important}
+  .fi-ent-title{color:#00B4D8!important;font-size:7.5pt!important}
+  .fi-ent-list li{color:#4a6a7a!important;font-size:8pt!important}
+  .fi-ent-list li::before{color:#00B4D8!important}
+  .fi-valor{background:#edf6fb!important;font-size:8pt!important;color:#1a2a3a!important}
+  .fi-valor strong{color:#0096B7!important}
+  .fi-level.l1{background:#fdecea!important;color:#c0392b!important}
+  .fi-level.l2{background:#fef6e0!important;color:#b7860a!important}
+  .fi-level.l3{background:#e0f6fc!important;color:#0096B7!important}
+  .fi-level.l4{background:#e6faf0!important;color:#1a9e55!important}
+
+  /* PRECOTIZACIÓN */
+  .quote-section{background:#fff!important;padding:20px 28px!important}
+  .quote-badge{background:#fef6e0!important;border-color:#E9A825!important;color:#b7860a!important;font-size:8pt!important}
+  .quote-intro{color:#4a6a7a!important;font-size:9pt!important}
+  .qi{background:#f0f6fa!important;border-color:#dce4ec!important}
+  .qi-name{color:#07192B!important;font-size:9pt!important}
+  .qi-sub{color:#6b8fa8!important;font-size:8pt!important}
+  .qi-price{color:#0096B7!important;font-size:10pt!important;font-weight:700!important}
+  .quote-total{background:#07192B!important;border-color:#00B4D8!important;border-radius:6px!important}
+  .qt-label{color:#E8F4F8!important}
+  .qt-val{color:#00B4D8!important;font-size:16pt!important}
+  .quote-disc{font-size:7.5pt!important;color:#6b8fa8!important}
+
+  /* VALIDEZ */
+  .validity-box{
+    display:block!important;
+    background:#fef6e0!important;
+    border:1px solid #E9A825!important;
+    border-radius:5px!important;
+    padding:10px 14px!important;
+    margin:12px 0!important;
+    font-size:8.5pt!important;
+    color:#7a5a00!important;
+    line-height:1.5!important;
+  }
+
+  /* CTA en PDF — solo texto, sin botones */
+  .cta-section{
+    background:#f0f6fa!important;
+    border-top:2px solid #00B4D8!important;
+    padding:16px 28px!important;
+    text-align:left!important;
+  }
+  .cta-section p{color:#1a2a3a!important;font-size:9pt!important}
+
+  /* PIE DE PÁGINA — aparece en TODAS las páginas */
+  .pdf-footer{
+    display:block!important;
+    position:fixed!important;
+    bottom:0!important;left:0!important;right:0!important;
+    background:#07192B!important;
+    border-top:2px solid #00B4D8!important;
+    padding:6px 28px!important;
+    display:flex!important;
+    justify-content:space-between!important;
+    align-items:center!important;
+  }
+  .pdf-footer-left{font-size:7pt!important;color:#9CB8C8!important;line-height:1.5!important}
+  .pdf-footer-right{font-size:7pt!important;color:#9CB8C8!important;text-align:right!important}
+  .pdf-footer em{color:#00B4D8!important;font-style:normal!important}
 }
 </style>
 </head>
@@ -477,14 +644,56 @@ body{font-family:var(--sans);background:var(--navy);color:var(--white);min-heigh
   <div class="step" id="step3">
     <div class="report-wrap" id="reportWrap">
 
-      <!-- Encabezado -->
+      <!-- ▌CABECERA PROFESIONAL ▌-->
       <div class="rep-header">
-        <div class="rep-logo"><em>CLYP</em> Consultores · Gobierno TI</div>
-        <div class="rep-title">Informe de Madurez TI</div>
-        <div class="rep-meta" id="repMeta"></div>
+        <div>
+          <div class="rep-logo"><em>CLYP</em> Consultores · Gobierno TI &amp; Transformación Digital</div>
+          <div class="rep-title">Informe de Diagnóstico de Madurez TI</div>
+          <div class="rep-meta" id="repMeta"></div>
+          <span class="rep-validity" id="repValidity"></span>
+        </div>
+        <div class="rep-header-right">
+          <div style="font-size:11px;color:#9CB8C8">contacto@clypconsultores.cl</div>
+          <div style="font-size:11px;color:#9CB8C8">+56 9 9128 0940</div>
+          <div style="font-size:11px;color:#9CB8C8">www.clypconsultores.cl</div>
+          <div class="rep-folio" id="repFolio"></div>
+        </div>
       </div>
 
-      <!-- Score global -->
+      <!-- ▌DATOS DE LA EMPRESA ▌-->
+      <div class="rep-empresa-box" id="repEmpresaBox">
+        <div class="reb-item">
+          <div class="reb-label">Empresa</div>
+          <div class="reb-value" id="reb-empresa">—</div>
+        </div>
+        <div class="reb-item">
+          <div class="reb-label">Representante</div>
+          <div class="reb-value" id="reb-contacto">—</div>
+        </div>
+        <div class="reb-item">
+          <div class="reb-label">Industria</div>
+          <div class="reb-value" id="reb-industria">—</div>
+        </div>
+        <div class="reb-item">
+          <div class="reb-label">Tamaño</div>
+          <div class="reb-value" id="reb-tamanio">—</div>
+        </div>
+        <div class="reb-item">
+          <div class="reb-label">Email corporativo</div>
+          <div class="reb-value" id="reb-email">—</div>
+        </div>
+        <div class="reb-item">
+          <div class="reb-label">Fecha diagnóstico</div>
+          <div class="reb-value" id="reb-fecha">—</div>
+        </div>
+      </div>
+
+      <!-- ▌AVISO DE PRIVACIDAD ▌-->
+      <div class="rep-privacy-bar">
+        🔒 <strong>Aviso de privacidad (Ley 19.628, Chile):</strong> Los datos personales recopilados en este diagnóstico serán utilizados <strong>exclusivamente</strong> para la elaboración de esta precotización referencial y el seguimiento comercial asociado. No serán cedidos a terceros. Puede ejercer sus derechos ARCO escribiendo a contacto@clypconsultores.cl.
+      </div>
+
+      <!-- ▌SCORE GLOBAL ▌-->
       <div class="score-band">
         <div class="score-ring">
           <svg viewBox="0 0 100 100" width="100" height="100">
@@ -504,40 +713,61 @@ body{font-family:var(--sans);background:var(--navy);color:var(--white);min-heigh
         </div>
       </div>
 
-      <!-- Barras por dimensión -->
+      <!-- ▌BARRAS POR DIMENSIÓN ▌-->
       <div class="dims-section">
         <div class="sec-title">Resultado por dimensión</div>
         <div class="dim-bars" id="dimBars"></div>
       </div>
 
-      <!-- Hallazgos -->
+      <!-- ▌HALLAZGOS ▌-->
       <div class="findings-section">
-        <div class="sec-title">Hallazgos, entregables y valor por dimensión</div>
+        <div class="sec-title">Hallazgos, entregables y valor generado por dimensión</div>
         <div id="findings"></div>
       </div>
 
-      <!-- Precotización -->
+      <!-- ▌PRECOTIZACIÓN ▌-->
       <div class="quote-section">
-        <span class="quote-badge">💡 Precotización estimada</span>
+        <span class="quote-badge">💡 Precotización referencial</span>
+
+        <!-- Aviso uso datos cotización -->
+        <div class="validity-box" id="validityBox">
+          📋 <strong>Uso de datos:</strong> La información proporcionada en este diagnóstico se utiliza <strong>exclusivamente</strong> para elaborar esta precotización referencial. No será utilizada para otros fines comerciales sin su consentimiento expreso.<br>
+          ⏱ <strong>Validez:</strong> Esta precotización tiene una vigencia de <strong>20 días corridos</strong> desde la fecha de emisión (<span id="validityDate"></span>). Transcurrido ese plazo, los valores referenciales podrán ser actualizados.
+        </div>
+
         <p class="quote-intro" id="quoteIntro"></p>
         <div class="quote-items" id="quoteItems"></div>
+
         <div class="quote-total">
           <div>
             <div class="qt-label">Inversión estimada total</div>
-            <div style="font-size:10px;color:var(--muted)">Valores referenciales en UF · IVA no incluido</div>
+            <div style="font-size:10px;color:var(--muted)">Valores referenciales en UF · No incluye IVA · Sujeto a propuesta formal</div>
           </div>
           <div class="qt-val" id="qtVal"></div>
         </div>
-        <p class="quote-disc">Esta precotización es referencial y no constituye una oferta vinculante. La propuesta formal se entrega en máximo 5 días hábiles tras la reunión diagnóstico.</p>
+        <p class="quote-disc">Esta precotización es referencial y <strong>no constituye una oferta vinculante ni una asesoría legal, financiera o regulatoria</strong>. Los valores definitivos se establecen en la propuesta formal, entregada en máximo 5 días hábiles tras la reunión de diagnóstico.</p>
       </div>
 
-      <!-- CTA -->
+      <!-- ▌CTA ▌-->
       <div class="cta-section">
         <p>Su diagnóstico ha sido registrado. El equipo de CLYP Consultores revisará sus resultados y le contactará en las próximas <strong>48 horas hábiles</strong>. Para acelerar el proceso, agende una reunión de 30 minutos ahora.</p>
         <div class="cta-btns">
           <a class="btn-cal" href="https://cal.com/luisa-yanez-liu-ntx1z5/asesoria-ejecutiva-en-tecnologia" target="_blank" rel="noopener">📅 Agendar reunión de 30 min</a>
           <a class="btn-email" href="mailto:contacto@clypconsultores.cl">✉ Escribir directamente</a>
-          <button class="btn-print" onclick="window.print()">🖨️ Imprimir informe</button>
+          <button class="btn-print" onclick="window.print()">🖨️ Descargar / Imprimir PDF</button>
+        </div>
+      </div>
+
+      <!-- ▌PIE DE PÁGINA PDF (visible solo al imprimir) ▌-->
+      <div class="pdf-footer">
+        <div class="pdf-footer-left">
+          <strong style="color:#fff"><em>CLYP</em> Consultores</strong> · Gobierno TI &amp; Transformación Digital · contacto@clypconsultores.cl · +56 9 9128 0940<br>
+          Santiago, Chile · www.clypconsultores.cl · Ley 19.628 sobre Protección de la Vida Privada
+        </div>
+        <div class="pdf-footer-right">
+          <strong style="color:#E9A825">Documento de referencia</strong><br>
+          No constituye asesoría legal, financiera ni regulatoria.<br>
+          Precotización válida 20 días desde emisión.
         </div>
       </div>
 
@@ -894,22 +1124,40 @@ function getNivel(score){
 
 /* ── GENERAR INFORME ── */
 function generarInforme(d){
-  const score = calcScore();
-  const nv    = getNivel(score);
+  const score  = calcScore();
+  const nv     = getNivel(score);
+  const hoy    = new Date();
+  const fmtES  = dt => dt.toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+  const vence  = new Date(hoy); vence.setDate(vence.getDate()+20);
+  const folio  = `N° ${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*9000+1000)}`;
 
-  // Meta
+  // ── Cabecera ──
   document.getElementById('repMeta').textContent =
-    `${d.nombre} · ${d.cargo} · ${d.empresa} · ${d.industria} · ${new Date().toLocaleDateString('es-CL',{dateStyle:'long'})}`;
+    `Informe emitido el ${fmtES(hoy)}`;
+  document.getElementById('repValidity').textContent =
+    `⏱ Vigencia de precotización: hasta el ${fmtES(vence)} (20 días corridos)`;
+  document.getElementById('repFolio').textContent = folio;
 
-  // Ring SVG
+  // ── Datos empresa ──
+  document.getElementById('reb-empresa').textContent  = d.empresa;
+  document.getElementById('reb-contacto').textContent = `${d.nombre} · ${d.cargo}`;
+  document.getElementById('reb-industria').textContent = d.industria;
+  document.getElementById('reb-tamanio').textContent  = d.tamanio;
+  document.getElementById('reb-email').textContent    = d.email;
+  document.getElementById('reb-fecha').textContent    = fmtES(hoy);
+
+  // ── Fecha validez en caja ──
+  document.getElementById('validityDate').textContent = fmtES(vence);
+
+  // ── Ring SVG ──
   const pct    = (score - 1) / 3;
   const circumference = 251.2;
   const offset = circumference - (circumference * pct);
   const ring   = document.getElementById('ringFill');
-  ring.style.strokeDashoffset = circumference; // start
+  ring.style.strokeDashoffset = circumference;
   ring.style.stroke = nv.color;
   setTimeout(()=>{ ring.style.strokeDashoffset = offset; }, 200);
-  document.getElementById('scoreVal').textContent   = score.toFixed(1);
+  document.getElementById('scoreVal').textContent    = score.toFixed(1);
   document.getElementById('scoreNivel').textContent  = nv.nivel;
   document.getElementById('scoreLabel').textContent  = nv.label;
   document.getElementById('scoreDesc').textContent   = nv.desc;
